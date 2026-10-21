@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOKX | QR Code Generator</title>
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20stop-color=%22%2343dfd0%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%238662ff%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%2248%22%20height=%2248%22%20rx=%2215%22%20fill=%22%23111827%22/%3E%3Cpath%20d=%22M9%209h12v12H9zm18%200h12v12H27zM9%2027h12v12H9z%22%20fill=%22none%22%20stroke=%22white%22%20stroke-width=%222.5%22/%3E%3Cpath%20d=%22M13%2013h4v4h-4zm18%200h4v4h-4zM13%2031h4v4h-4zm14-4h5v5h-5zm8%200h4v4h-4zm-8%208h4v4h-4z%22%20fill=%22url(%23g)%22/%3E%3C/svg%3E">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: transparent;
+      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .home-screen {
+      min-height: 100vh;
+    }
+
+    .brand {
+      position: absolute;
+      z-index: 2;
+      top: 24px;
+      left: 28px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 8px 15px 8px 9px;
+      border: 1px solid rgba(255, 255, 255, .82);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .68);
+      box-shadow: 0 8px 24px rgba(47, 61, 104, .12);
+      backdrop-filter: blur(10px);
+      direction: ltr;
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: #111827;
+      font-size: clamp(1.5rem, 4vw, 2.15rem);
+      font-weight: 900;
+      letter-spacing: .075em;
+      line-height: 1;
+    }
+
+    .logo-mark {
+      width: clamp(40px, 5vw, 50px);
+      height: auto;
+      flex: none;
+      filter: drop-shadow(0 4px 7px rgba(56, 72, 130, .22));
+    }
+
+    .edge-decor {
+      position: fixed;
+      z-index: -1;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 0% 0%, rgba(255, 72, 126, .65), transparent 34%), radial-gradient(ellipse at 100% 0%, rgba(77, 139, 255, .62), transparent 32%), radial-gradient(ellipse at 0% 100%, rgba(255, 177, 66, .62), transparent 34%), radial-gradient(ellipse at 100% 100%, rgba(119, 77, 255, .62), transparent 34%);
+    }
+
+    .edge-decor::before,
+    .edge-decor::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 2px solid transparent;
+      border-radius: 28px;
+      background: linear-gradient(135deg, #ff4f91, #ffbd4a, #48d7c4, #617dff, #bb62ff) border-box;
+      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: .72;
+    }
+
+    .edge-decor::after {
+      inset: 22px;
+      border-width: 1px;
+      border-radius: 22px;
+      opacity: .42;
+    }
+
+    .welcome {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      text-align: center;
+      padding: 24px;
+      animation: rise-in 1.2s cubic-bezier(.2, .75, .3, 1) both;
+    }
+
+    .welcome h2 {
+      margin: 0;
+      font-size: clamp(2rem, 7vw, 4.5rem);
+      font-weight: 800;
+    }
+
+    .welcome-subtitle {
+      margin: 14px 0 0;
+      color: #3c4658;
+      font-size: clamp(1rem, 2.5vw, 1.35rem);
+    }
+
+    .welcome-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 34px;
+    }
+
+    .welcome-links a {
+      min-width: 150px;
+      padding: 14px 22px;
+      border: 1px solid rgba(0, 0, 0, .2);
+      border-radius: 14px;
+      color: #000;
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 700;
+      transition: transform .22s ease, color .22s ease, border-color .22s ease, box-shadow .22s ease;
+    }
+
+    .welcome-links a:hover,
+    .welcome-links a:focus-visible {
+      transform: translateY(-7px);
+      color: #087cff;
+      border-color: #1688ff;
+      box-shadow: 0 0 12px rgba(0, 123, 255, .55), 0 0 28px rgba(0, 123, 255, .35);
+      outline: none;
+    }
+
+    .field-hint {
+      color: #7a8495;
+      font-size: .82rem;
+      font-weight: 400;
+    }
+
+    @keyframes rise-in {
+      from {
+        transform: translateY(110vh);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    .qr-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 36px 20px;
+      position: relative;
+    }
+
+    .qr-panel {
+      position: relative;
+      width: min(100%, 500px);
+      padding: clamp(24px, 5vw, 40px);
+      border: 1px solid rgba(0, 0, 0, .14);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: 0 18px 60px rgba(30, 45, 80, .14);
+      text-align: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .qr-panel h2 {
+      margin: 0 0 24px;
+      font-size: clamp(1.7rem, 6vw, 2.3rem);
+    }
+
+    .qr-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .qr-form label {
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .qr-form input {
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 14px;
+      border: 1px solid #cbd2df;
+      border-radius: 12px;
+      background: #fff;
+      color: #111827;
+      font: inherit;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .qr-form input:focus {
+      outline: 3px solid rgba(22, 136, 255, .22);
+      border-color: #1688ff;
+    }
+
+    .qr-button {
+      min-height: 50px;
+      padding: 12px 20px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(120deg, #1688ff, #774dff);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .qr-button:hover {
+      filter: brightness(1.08);
+    }
+
+    .qr-back {
+      margin-top: 18px;
+      padding: 8px 12px;
+      border: 0;
+      background: transparent;
+      color: #334155;
+      font: inherit;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .qr-status {
+      min-height: 1.4em;
+      margin: 12px 0 0;
+      color: #b42318;
+    }
+
+    .qr-result-card {
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .qr-result-card h3 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+    }
+
+    #qrResult {
+      display: grid;
+      place-items: center;
+      overflow: auto;
+    }
+
+    #qrResult img,
+    #qrResult canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    @media (max-width: 480px) {
+      .qr-screen {
+        padding: 20px 14px;
+      }
+
+      .qr-panel {
+        border-radius: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <section class="home-screen" id="homeScreen">
+    <div class="edge-decor" aria-hidden="true"></div>
+    <header class="brand" aria-label="FOKX">
+      <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="brandGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#43dfd0" />
+            <stop offset="1" stop-color="#8662ff" />
+          </linearGradient>
+        </defs>
+        <rect width="48" height="48" rx="15" fill="#111827" />
+        <path d="M9 9h12v12H9zm18 0h12v12H27zM9 27h12v12H9z" fill="none" stroke="#fff" stroke-width="2.5" />
+        <path d="M13 13h4v4h-4zm18 0h4v4h-4zM13 31h4v4h-4z" fill="url(#brandGradient)" />
+        <path d="M27 27h5v5h-5zm8 0h4v4h-4zm-8 8h4v4h-4zm8 2h4v2h-4zm-2-7h2v6h-2z" fill="url(#brandGradient)" />
+      </svg>
+      <h1>FOKX</h1>
+    </header>
+    <main class="welcome">
+      <h2>Welcome to FOKX</h2>
+      <p class="welcome-subtitle">Create your own QR code</p>
+      <div class="welcome-links"><a href="#qrScreen" id="openQr">Create QR Code</a></div>
+    </main>
+  </section>
+  <section class="qr-screen" id="qrScreen" hidden>
+    <div class="edge-decor" aria-hidden="true"></div>
+    <main class="qr-panel">
+      <h2>Create a QR Code</h2>
+      <form class="qr-form" id="qrForm">
+        <label for="qrInput">Enter the link you want to turn into a QR code</label>
+        <input id="qrInput" name="url" type="text" placeholder="https://example.com" autocomplete="url" required>
+        <button class="qr-button" type="submit">Generate</button>
+      </form>
+      <p class="qr-status" id="qrStatus" role="status" aria-live="polite"></p>
+      <section class="qr-result-card" id="qrCard" hidden aria-live="polite">
+        <h3>Your QR code</h3>
+        <div id="qrResult"></div>
+      </section>
+      <button class="qr-back" id="qrBack" type="button">Back to home</button>
+    </main>
+  </section>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const homeScreen = document.getElementById("homeScreen");
+    const qrScreen = document.getElementById("qrScreen");
+    const openQr = document.getElementById("openQr");
+    const qrBack = document.getElementById("qrBack");
+    const qrForm = document.getElementById("qrForm");
+    const qrInput = document.getElementById("qrInput");
+    const qrStatus = document.getElementById("qrStatus");
+    const qrCard = document.getElementById("qrCard");
+    const qrResult = document.getElementById("qrResult");
+
+    openQr.addEventListener("click", (event) => {
+      event.preventDefault();
+      homeScreen.hidden = true;
+      qrScreen.hidden = false;
+      qrInput.focus();
+    });
+
+    qrBack.addEventListener("click", () => {
+      qrScreen.hidden = true;
+      homeScreen.hidden = false;
+      openQr.focus();
+    });
+
+    qrForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      qrStatus.textContent = "";
+      qrCard.hidden = true;
+      qrResult.replaceChildren();
+
+      const value = qrInput.value.trim();
+      const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value);
+      const hasHostPort = /^[^:/?#]+:\d+(?:[/?#]|$)/.test(value);
+      const address = hasScheme && !hasHostPort ? value : `https://${value}`;
+
+      try {
+        const url = new URL(address);
+        if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("INVALID_WEB_URL");
+        if (typeof QRCode === "undefined") throw new Error("QR_GENERATOR_UNAVAILABLE");
+        new QRCode(qrResult, {
+          text: url.href,
+          width: 220,
+          height: 220,
+          colorDark: "#111827",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+        qrCard.hidden = false;
+      } catch (error) {
+        if (error.message === "QR_GENERATOR_UNAVAILABLE") {
+          qrStatus.textContent = "Could not load the QR code generator. Check your internet connection and try again.";
+        } else if (/code length overflow/i.test(error.message)) {
+          qrStatus.textContent = "This link is too long for a QR code. Try a shorter link.";
+        } else {
+          qrStatus.textContent = "Enter a valid link, such as example.com or https://example.com";
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
+
+
+
