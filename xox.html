@@ -291,6 +291,59 @@
       font-size: 1.1rem;
     }
 
+    .qr-actions {
+      display: grid;
+      gap: 11px;
+      margin-top: 18px;
+    }
+
+    .qr-action {
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 20px;
+      border: 0;
+      border-radius: 13px;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+    }
+
+    .qr-action:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+
+    .qr-action:focus-visible {
+      outline: 3px solid rgba(22, 136, 255, .35);
+      outline-offset: 3px;
+    }
+
+    .qr-action-download {
+      background: linear-gradient(115deg, #12b8a6, #1688ff, #774dff);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .62) inset, 0 8px 20px rgba(22, 136, 255, .22);
+      animation: qr-glow 1.8s ease-in-out infinite alternate;
+    }
+
+    .qr-action-share {
+      background: #111827;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, .16);
+    }
+
+    .qr-status[data-state="success"] {
+      color: #087f5b;
+    }
+
+    @keyframes qr-glow {
+      from {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, .62) inset, 0 8px 18px rgba(22, 136, 255, .22), 0 0 10px rgba(22, 136, 255, .16);
+      }
+
+      to {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, .72) inset, 0 10px 24px rgba(119, 77, 255, .3), 0 0 21px rgba(67, 223, 208, .34);
+      }
+    }
     #qrResult {
       display: grid;
       place-items: center;
@@ -353,6 +406,10 @@
       <section class="qr-result-card" id="qrCard" hidden aria-live="polite">
         <h3>Your QR code</h3>
         <div id="qrResult"></div>
+        <div class="qr-actions" aria-label="QR code actions">
+          <button class="qr-action qr-action-download" id="downloadQr" type="button">Download QR Code</button>
+          <button class="qr-action qr-action-share" id="shareQr" type="button">Share QR Code</button>
+        </div>
       </section>
       <button class="qr-back" id="qrBack" type="button">Back to home</button>
     </main>
@@ -368,6 +425,9 @@
     const qrStatus = document.getElementById("qrStatus");
     const qrCard = document.getElementById("qrCard");
     const qrResult = document.getElementById("qrResult");
+    const downloadQrButton = document.getElementById("downloadQr");
+    const shareQrButton = document.getElementById("shareQr");
+    let currentQrUrl = "";
 
     openQr.addEventListener("click", (event) => {
       event.preventDefault();
@@ -380,6 +440,128 @@
       qrScreen.hidden = true;
       homeScreen.hidden = false;
       openQr.focus();
+    });
+
+    function setQrStatus(message, state = "error") {
+      qrStatus.textContent = message;
+      if (message) {
+        qrStatus.dataset.state = state;
+      } else {
+        qrStatus.removeAttribute("data-state");
+      }
+    }
+
+    function qrBlobFromDataUrl(dataUrl) {
+      const [header, encoded] = dataUrl.split(",", 2);
+      const mimeType = header.match(/^data:([^;]+)/)?.[1] || "image/png";
+      const binary = atob(encoded);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+      return new Blob([bytes], { type: mimeType });
+    }
+
+    function getQrBlob() {
+      const qrCanvas = qrResult.querySelector("canvas");
+      if (qrCanvas && qrCanvas.width && qrCanvas.height) {
+        return qrBlobFromDataUrl(qrCanvas.toDataURL("image/png"));
+      }
+
+      const qrImage = qrResult.querySelector("img");
+      if (qrImage && qrImage.complete && qrImage.naturalWidth) {
+        const canvas = document.createElement("canvas");
+        canvas.width = qrImage.naturalWidth;
+        canvas.height = qrImage.naturalHeight;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("QR_EXPORT_FAILED");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(qrImage, 0, 0);
+        return qrBlobFromDataUrl(canvas.toDataURL("image/png"));
+      }
+
+      throw new Error("QR_EXPORT_FAILED");
+    }
+
+    function downloadQrBlob(blob) {
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "fokx-qr-code.png";
+      link.hidden = true;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    }
+
+    downloadQrButton.addEventListener("click", () => {
+      try {
+        downloadQrBlob(getQrBlob());
+        setQrStatus("Your QR code has been downloaded.", "success");
+      } catch (error) {
+        setQrStatus("Could not download the QR code. Please try again.");
+      }
+    });
+
+    function fallbackShareQrBlob(blob) {
+      if (navigator.clipboard &&
+          typeof navigator.clipboard.write === "function" &&
+          typeof ClipboardItem !== "undefined") {
+        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => {
+          setQrStatus("QR code copied. Paste it into the app where you want to share it.", "success");
+        }).catch(() => {
+          downloadQrBlob(blob);
+          setQrStatus("Direct sharing failed. The QR code was downloaded so you can share it.", "success");
+        });
+        return;
+      }
+
+      downloadQrBlob(blob);
+      setQrStatus("Direct sharing is unavailable here. The QR code was downloaded so you can share it.", "success");
+    }
+
+    shareQrButton.addEventListener("click", () => {
+      let blob;
+      try {
+        blob = getQrBlob();
+      } catch (error) {
+        setQrStatus("Could not prepare the QR code for sharing.");
+        return;
+      }
+
+      const file = new File([blob], "fokx-qr-code.png", { type: "image/png" });
+      let supportsFileSharing = false;
+      try {
+        supportsFileSharing = typeof navigator.share === "function" &&
+          typeof navigator.canShare === "function" &&
+          navigator.canShare({ files: [file] });
+      } catch (error) {
+        supportsFileSharing = false;
+      }
+
+      if (!supportsFileSharing) {
+        fallbackShareQrBlob(blob);
+        return;
+      }
+
+      try {
+        navigator.share({
+          title: "FOKX QR Code",
+          files: [file]
+        }).then(() => {
+          setQrStatus("Your QR code has been shared.", "success");
+        }).catch((error) => {
+          if (error.name === "AbortError") {
+            setQrStatus("Sharing was cancelled or no share app was available. You can download the QR code instead.");
+          } else {
+            fallbackShareQrBlob(blob);
+          }
+        });
+      } catch (error) {
+        fallbackShareQrBlob(blob);
+      }
     });
 
     qrForm.addEventListener("submit", (event) => {
@@ -396,6 +578,7 @@
       try {
         const url = new URL(address);
         if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("INVALID_WEB_URL");
+        currentQrUrl = url.href;
         if (typeof QRCode === "undefined") throw new Error("QR_GENERATOR_UNAVAILABLE");
         new QRCode(qrResult, {
           text: url.href,
@@ -420,6 +603,8 @@
 </body>
 
 </html>
+
+
 
 
 
